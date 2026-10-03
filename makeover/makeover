@@ -1,5 +1,3 @@
-# MAKEOVER GRAFIK
-
 library(tidyverse)
 library(patchwork)
 library(here)
@@ -9,7 +7,7 @@ dir_makeover <- file.path(folder_proyek, "keluaran", "makeover")
 dir.create(dir_makeover, recursive = TRUE, showWarnings = FALSE)
 
 
-# ==== 1. Data ===========================================================
+# ==== 1. Data (disalin dari grafik resmi BPS) ================================
 periode_lv <- c("Ags 2023", "Feb 2024", "Ags 2024", "Feb 2025", "Ags 2025")
 
 tpt_wide <- tibble(
@@ -18,7 +16,7 @@ tpt_wide <- tibble(
   laki_laki = c(4.39, 5.10, 3.76, 5.40, 4.39),
   perempuan = c(4.25, 4.58, 4.85, 4.26, 3.92),
   perkotaan = c(6.24, 6.36, 6.20, 6.99, 6.12),
-  perdesaan = c(2.80, 3.70, 2.44, 3.09, 2.40)
+  pedesaan = c(2.80, 3.70, 2.44, 3.09, 2.40)
 )
 
 # Pemeriksaan: BPS menyatakan TPT Ags 2025 naik 0,02 poin dari Ags 2024.
@@ -33,9 +31,9 @@ stopifnot(
 kategori_info <- tribble(
   ~kode,       ~kategori,    ~dimensi,         ~warna,    ~warna_teks,
   "laki_laki", "Laki-laki",  "Jenis kelamin",  "#08519C", "white",
-  "perempuan", "Perempuan",  "Jenis kelamin",  "#9ECAE1", "black",
+  "perempuan", "Perempuan",  "Jenis kelamin",  "#9ECAE1", "white",
   "perkotaan", "Perkotaan",  "Wilayah",        "#A63603", "white",
-  "perdesaan", "Perdesaan",  "Wilayah",        "#FDAE6B", "black"
+  "pedesaan", "pedesaan",  "Wilayah",        "#FDAE6B", "white"
 )
 
 tpt_total <- select(tpt_wide, periode, nilai = total)
@@ -52,7 +50,7 @@ tema_makeover <- function(ukuran = 11) {
     plot.title            = element_text(face = "bold", size = ukuran + 1,
                                          hjust = 0),
     plot.title.position   = "plot",
-    plot.subtitle         = element_text(colour = "grey35"),
+    plot.subtitle         = element_text(colour = "red"),
     plot.caption          = element_text(colour = "grey40", size = ukuran - 3,
                                          hjust = 0),
     plot.caption.position = "plot",
@@ -78,8 +76,8 @@ skala_y <- scale_y_continuous(
 
 # ==== 3. Panel 1: TPT total (garis) ==========================================
 p_total <- ggplot(tpt_total, aes(x = periode, y = nilai, group = 1)) +
-  geom_line(colour = "grey25", linewidth = 0.9) +
-  geom_point(colour = "grey25", size = 2.8) +
+  geom_line(colour = "blue2", linewidth = 0.9) +
+  geom_point(colour = "blue2", size = 2.8) +
   geom_text(aes(label = fmt(nilai)), vjust = -1.1, size = 3.5,
             fontface = "bold", colour = "grey15") +
   skala_y +
@@ -159,3 +157,5 @@ tabel_masalah <- tribble(
   "Label dekat objek mengurangi beban kognitif; warna sebagai atribut pre-attentive dikenali tanpa usaha sadar."
 )
 
+# Di atlas.qmd:  knitr::kable(tabel_masalah)
+tabel_masalah
