@@ -37,24 +37,24 @@ Analisis masalah berdasarkan prinsip persepsi visual, dampaknya terhadap pembaca
 - **Masalah:** Laki-laki dan perempuan membagi penduduk menurut jenis kelamin, sedangkan perkotaan dan perdesaan membagi penduduk menurut wilayah. Keempatnya ditampilkan sebagai empat kategori yang setara.
 - **Prinsip persepsi visual:** Similarity (kesamaan), Proximity (kedekatan), dan Grouping.
 - **Dampak:** Pembaca dapat menganggap keempat kategori memiliki dasar klasifikasi yang sama, padahal sebenarnya terdiri atas dua dimensi yang berbeda.
-- **Cara memperbaiki:** _(diisi Wafiq)_
-- **Alasan desain:** _(diisi Wafiq)_
+- **Cara memperbaiki:** Memisahkan kategori menjadi dua panel, yaitu panel “Tingkat Pengangguran Terbuka Berdasarkan Jenis Kelamin” yang berisi laki-laki dan perempuan, serta panel “Tingkat Pengangguran Terbuka Berdasarkan Wilayah” yang berisi perkotaan dan pedesaan.
+- **Alasan desain:** Pemisahan panel membuat setiap kelompok memiliki dasar klasifikasi yang jelas. Laki-laki dan perempuan dipersepsikan sebagai satu kelompok berdasarkan jenis kelamin, sedangkan perkotaan dan pedesaan sebagai satu kelompok berdasarkan wilayah. Hal ini menerapkan prinsip Similarity, Proximity, dan Grouping sehingga hubungan antar kategori lebih mudah dipahami.
 
 ### Masalah 2: Batang dan garis digabung tanpa sumbu Y dan tanpa skala bersama
 
 - **Masalah:** Batang menunjukkan TPT menurut jenis kelamin dan wilayah, sedangkan garis menunjukkan TPT total. Titik TPT 4,33% digambar di atas batang bernilai 6,24%, padahal nilainya lebih kecil.
 - **Prinsip persepsi visual:** Common Scale (skala yang sama), Position dan Length (posisi dan panjang), Visual Hierarchy (hierarki visual), dan Grouping/Separation.
 - **Dampak:** Posisi vertikal objek tidak merepresentasikan besar nilai secara konsisten, sehingga pembaca memperoleh persepsi keliru tentang perbandingan nilai dan besar perubahan. Pembaca juga harus memahami dua bentuk representasi sekaligus, sehingga fokus menjadi kabur.
-- **Cara memperbaiki:** _(diisi Wafiq)_
-- **Alasan desain:** _(diisi Wafiq)_
+- **Cara memperbaiki:** Memisahkan grafik TPT total dalam bentuk garis dari grafik TPT berdasarkan kategori dalam bentuk batang. Ketiga panel menggunakan skala sumbu Y yang sama, yaitu dimulai dari 0 hingga 8 persen.
+- **Alasan desain:** Skala Y yang sama membuat posisi dan panjang elemen visual dapat dibandingkan secara langsung antar panel. Pemisahan grafik juga membuat informasi TPT total dan TPT berdasarkan kategori tidak saling bertumpuk. Dengan demikian, prinsip Common Scale, Position and Length, serta Visual Hierarchy dapat diterapkan dengan lebih baik.
 
 ### Masalah 3: Pengkodean warna dan legenda lemah
 
 - **Masalah:** Oranye (perempuan) dan cokelat (perkotaan) sama-sama berwarna hangat dan sulit dibedakan, hijau perdesaan mirip hijau penanda TPT, dan legenda terletak jauh di bawah batang dengan ikon kecil.
 - **Prinsip persepsi visual:** Similarity (kesamaan warna), Proximity (kedekatan legenda dengan data), dan Pre-attentive Attributes (warna).
 - **Dampak:** Kategori yang berbeda tampak serupa dan pembaca harus bolak-balik antara batang dan legenda untuk mencocokkan warna, sehingga beban kognitif meningkat dan risiko salah baca bertambah, terutama bagi pembaca dengan buta warna.
-- **Cara memperbaiki:** _(diisi Wafiq)_
-- **Alasan desain:** _(diisi Wafiq)_
+- **Cara memperbaiki:** Menggunakan satu keluarga warna untuk setiap dimensi, yaitu warna biru untuk jenis kelamin dan warna oranye untuk wilayah, dengan perbedaan tingkat kecerahan untuk membedakan kategori. Label kategori juga ditempatkan langsung pada batang sehingga legenda tidak diperlukan.
+- **Alasan desain:** Penggunaan keluarga warna yang konsisten membantu pembaca mengenali kategori yang masih berada dalam dimensi yang sama. Label langsung pada batang membuat informasi kategori berada dekat dengan objek yang dijelaskan sehingga mengurangi kebutuhan untuk berpindah antara grafik dan legenda. Perbedaan warna dan kecerahan juga memanfaatkan warna sebagai atribut pre-attentive sehingga kategori dapat dikenali dengan lebih cepat.
 
 ## 4. Berkas makeover
 
