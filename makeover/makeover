@@ -125,7 +125,7 @@ grafik_akhir <- p_total / (p_jk | p_wil) +
     subtitle = "Periode Agustus 2023 - Agustus 2025 (persen)",
     caption  = paste0("Sumber: BPS Provinsi Sulawesi Selatan, Berita Resmi ",
                       "Statistik No. 68/11/73/Th. XXIX, 5 November 2025. ",
-                      "Digambar ulang oleh Tim 6_Atlas_Visual_Sulsel."),
+                      "Digambar ulang oleh Tim 6"),
     theme    = tema_makeover()
   )
 
