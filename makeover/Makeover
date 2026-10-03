@@ -159,5 +159,3 @@ tabel_masalah <- tribble(
   "Label dekat objek mengurangi beban kognitif; warna sebagai atribut pre-attentive dikenali tanpa usaha sadar."
 )
 
-# Di atlas.qmd:  knitr::kable(tabel_masalah)
-tabel_masalah
