@@ -56,7 +56,7 @@ Jenis wilayah ditentukan dari kode wilayah: 7371 sampai 7373 adalah kota, sisany
 |---|---|
 | Titik awal | `theme_minimal()` bawaan ggplot2 |
 | Warna teks | Semua teks hitam `#000000`, kecuali judul biru `#0072B2` |
-| Judul | Tebal, biru `#0072B2`, ukuran 1,3 x dasar, rata kiri terhadap seluruh grafik (`plot.title.position = "plot"`) |
+| Judul | Tebal, biru `#0072B2`, ukuran 1,5 x dasar, rata kiri terhadap seluruh grafik (`plot.title.position = "plot"`) |
 | Subjudul | Warna hitam, jarak bawah 10 pt |
 | Caption (sumber) | Ukuran 0,8 x dasar, rata kiri, dipakai untuk sumber data dan keterangan garis atau pita |
 | Judul sumbu | Ukuran 0,95 x dasar |
@@ -124,6 +124,6 @@ lihat gambar uji_palet_peta di direktori ini
 
 | Berkas | Isi |
 |---|---|
-| `R/theme_tim.R` | Palet, skala, label, dan `theme_tim()` (file tema utama) |
-| `grafik_tim6.R` | Grafik 3 (scatterplot) dan Grafik 5 (dumbbell) yang memakai tema ini |
+| `galeri/.gitkeep` | Galeri Grafik Statistik |
+| `readme.md` | Penjelasan tema tim yang dipakai oleh tim 6|
 | `uji_palet_tim.png`, `uji_palet_peta.png` | Bukti uji buta warna palet tim dan palet peta |
