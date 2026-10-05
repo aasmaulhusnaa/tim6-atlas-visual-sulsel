@@ -19,14 +19,6 @@ pal_tim <- c(
   titik_2023  = "#F7F7F7",  # Titik 2023 di dumbbell (hampir putih, bertepian abu gelap)
   abu_terang  = "#D9D9D9"   # Isian kotak, pita, garis bantu
 )
-# Keputusan tim:
-# - Titik 2023 dumbbell memakai #F7F7F7 (bukan #999999) karena #999999 nyaris
-#   sama dengan ungu pada simulasi deuteranopia.
-# - Garis utama memakai vermilion #D55E00 (Okabe-Ito), bukan biru #0072B2,
-#   teal #009E73, maupun oranye #E69F00. Vermilion lebih gelap sehingga
-#   kontrasnya lebih kuat.
-# - Judul grafik memakai biru #0072B2 (kontras 5,2 terhadap putih). Hanya judul
-#   yang biru; semua teks lain tetap hitam. Biru tidak dipakai sebagai garis.
 
 # -----------------------------------------------------------------------------
 # 2. JENIS WILAYAH: warna + bentuk (grafik 1-5)
