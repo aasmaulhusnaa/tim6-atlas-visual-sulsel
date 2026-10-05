@@ -1,6 +1,6 @@
 # tim6-atlas-visual-sulsel
 
-**Atlas Visual Sulawesi Selatan: TPT dan Rata-rata Lama Sekolah, 24 kabupaten/kota, 2023-2025.**
+**Atlas Visual Sulawesi Selatan: Tingkat Pengangguran Terbuka dan Rata-rata Lama Sekolah, 24 kabupaten/kota, 2023-2025.**
 Proyek Tim 6, mata kuliah Komputasi Statistika Lanjut (S2 Statistika, FMIPA Unhas).
 
 Pertanyaan yang dijawab: bagaimana menyajikan satu indikator pembangunan untuk 24 kabupaten/kota di Sulawesi Selatan secara jujur (ketidakpastian tampak), teruji (pola terbukti bukan kebetulan), dan terprogram (seluruh grafik dapat dibuat ulang dengan kode).
