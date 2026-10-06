@@ -1,0 +1,4 @@
+panel_asli : 2
+tahun      : 2025
+set.seed   : 2026
+dibuat     : 2026-10-05 09:28:10
