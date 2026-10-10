@@ -1,0 +1,508 @@
+# =============================================================================
+# autoplot_uji_lengkap_dir_wafiq.R  (Wafiq, Hari 10-11)
+# Metode S3 autoplot() untuk objek analisis tim "sk_wilayah" + ujinya,
+# dalam SATU berkas yang berurutan benar:
+#   A. pengaturan jalur   B. muat tema   C. definisi (kelas, print, summary,
+#   autoplot)   D-H. uji kelas, dispatch, keluaran, objek asli, simpan gambar
+#
+# Folder proyek: C:/Users/ThinkPad E14/Documents/STATISTIK/PROJECT TIM 6 ATLAS VISUAL SULSEL
+#
+# Cara pakai: Session > Restart R, lalu klik Source (JANGAN Run per baris).
+# Berkas yang dicari otomatis di folder proyek (nama persis): theme_tim.R dan
+# data_bersih.rds. Uji objek asli (bagian G) memakai hitung_sk() dari
+# 09_grafik_sk_bootstrap.R: bila belum dijalankan di sesi ini, berkas itu dicari
+# dan dijalankan otomatis (atur di bagian G).
+# =============================================================================
+
+# =============================================================================
+# A. PENGATURAN JALUR
+# =============================================================================
+cari_dir_repo <- function(mulai = getwd()) {
+  d <- normalizePath(mulai, winslash = "/", mustWork = FALSE)
+  repeat {
+    if (length(list.files(d, pattern = "\\.Rproj$")) > 0 ||
+        dir.exists(file.path(d, ".git")) ||
+        dir.exists(file.path(d, "data-bersih"))) return(d)
+    induk <- dirname(d)
+    if (identical(induk, d)) return(NA_character_)
+    d <- induk
+  }
+}
+lokasi_skrip <- function() {
+  of <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
+  if (!is.null(of) && nzchar(of)) {
+    return(normalizePath(dirname(of), winslash = "/", mustWork = FALSE))
+  }
+  if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+    p <- tryCatch(rstudioapi::getSourceEditorContext()$path, error = function(e) "")
+    if (!is.null(p) && nzchar(p)) {
+      return(normalizePath(dirname(p), winslash = "/", mustWork = FALSE))
+    }
+  }
+  NA_character_
+}
+
+# PENGATURAN PRIBADI (hanya untuk laptop ini). Ganti menjadi NULL sebelum
+# berkas ini dibagikan ke tim / di-push ke GitHub.
+dir_repo_manual <- "C:/Users/ThinkPad E14/Documents/STATISTIK/PROJECT TIM 6 ATLAS VISUAL SULSEL"
+
+dir_repo <- if (!is.null(dir_repo_manual) && dir.exists(dir_repo_manual)) {
+  normalizePath(dir_repo_manual, winslash = "/", mustWork = FALSE)
+} else {
+  cari_dir_repo()
+}
+if (is.na(dir_repo)) {
+  ls_skrip <- lokasi_skrip()
+  if (!is.na(ls_skrip)) dir_repo <- cari_dir_repo(ls_skrip)
+}
+if (is.na(dir_repo)) {
+  stop("Folder repositori tidak ditemukan. Simpan skrip ini di dalam folder proyek ",
+       "dan buka proyek lewat file .Rproj.", call. = FALSE)
+}
+rel <- function(p) substring(p, nchar(dir_repo) + 2)
+cat("Repositori:", basename(dir_repo), "\n")
+
+# =============================================================================
+# B. MUAT TEMA TIM (harus SEBELUM definisi autoplot di bagian C)
+# =============================================================================
+library(ggplot2)
+
+# Mencari berkas di semua subfolder; bila ada beberapa kandidat dipakai yang
+# paling baru diubah.
+cari_berkas <- function(pola, nama) {
+  hasil <- list.files(dir_repo, pattern = pola, recursive = TRUE,
+                      full.names = TRUE, ignore.case = TRUE)
+  if (length(hasil) == 0) {
+    stop("Berkas ", nama, " tidak ditemukan di dalam repositori.", call. = FALSE)
+  }
+  hasil <- hasil[order(file.mtime(hasil), decreasing = TRUE)]
+  if (length(hasil) > 1) {
+    message("Ada ", length(hasil), " kandidat untuk ", nama, ", dipakai yang terbaru:\n",
+            paste0("  - ", rel(hasil), collapse = "\n"))
+  }
+  hasil[1]
+}
+
+# Utamakan nama persis theme_tim.R (tema pertama); cadangan: nama yang mirip.
+# Selalu dimuat ulang supaya tidak memakai sisa tema dari sesi sebelumnya.
+berkas_tema <- tryCatch(cari_berkas("^theme_tim\\.R$", "tema (theme_tim.R)"),
+                        error = function(e) cari_berkas("theme_tim.*\\.R(\\.txt)?$", "tema"))
+source(berkas_tema)
+message("Tema dimuat dari: ", rel(berkas_tema))
+message("Warna garis_utama tema: ", pal_tim[["garis_utama"]],
+        "  (#E69F00 = tema pertama; #D55E00 = tema versi baru)")
+
+# Data: nama persis data_bersih.rds (cadangan: nama yang mirip)
+berkas_data <- tryCatch(cari_berkas("^data_bersih\\.rds$", "data (data_bersih.rds)"),
+                        error = function(e) cari_berkas("^data_bersih.*\\.rds$", "data"))
+d <- as.data.frame(readRDS(berkas_data))
+d <- d[, !vapply(d, function(k) inherits(k, "sfc"), logical(1)), drop = FALSE]   # buang geometri
+nama_wil <- intersect(c("kabupaten", "kabkota"), names(d))[1]
+message("Data dimuat dari: ", rel(berkas_data))
+cat("Data:", nrow(d), "baris |",
+    if (!is.na(nama_wil)) length(unique(d[[nama_wil]])) else NA, "kabupaten/kota | tahun",
+    paste(sort(unique(d$tahun)), collapse = ", "), "\n")
+
+# =============================================================================
+# C. DEFINISI: KELAS sk_wilayah, print, summary, dan METODE autoplot
+# =============================================================================
+library(ggplot2)
+
+stopifnot(
+  "theme_tim.R belum dimuat. Jalankan source('R/theme_tim.R') sebelum berkas ini." =
+    exists("theme_tim") && exists("pal_tim")
+)
+
+# ---- fungsi bantu internal ---------------------------------------------------
+.koma <- function(x, d = 2) {
+  format(round(x, d), nsmall = d, decimal.mark = ",", trim = TRUE)
+}
+.singkat_ind <- function(nama) {
+  if (nama %in% c("tpt", "rls")) toupper(nama) else nama
+}
+.label_ind <- function(nama) {
+  switch(nama, tpt = lab_tpt, rls = lab_rls, nama)   # label baku tema tim
+}
+# NULL = teks otomatis; NA = tanpa teks; selain itu dipakai apa adanya
+.atur_teks <- function(x, otomatis) {
+  if (is.null(x)) otomatis else if (length(x) == 1 && is.na(x)) NULL else x
+}
+# jumlah pasangan kelompok bersebelahan (urut menurut estimasi) yang SK-nya tumpang tindih
+.pasangan_tumpang <- function(d) {
+  if (nrow(d) < 2) return(0L)
+  d <- d[order(d$est), ]
+  as.integer(sum(d$atas[-nrow(d)] >= d$bawah[-1]))
+}
+
+# =============================================================================
+# 1. KELAS "sk_wilayah": konstruktor, pembungkus, dan validasi
+# =============================================================================
+
+#' Pemeriksa isi objek sk_wilayah
+#'
+#' Memastikan objek memuat komponen dan kolom yang dibutuhkan, dan bahwa
+#' estimasi berada di dalam selang kepercayaannya. Berhenti dengan pesan jelas
+#' bila ada yang tidak sesuai.
+
+#' validasi_sk_wilayah(contoh_sk)
+validasi_sk_wilayah <- function(x) {
+  if (!is.list(x) || !all(c("hasil", "indikator", "B", "per_tahun") %in% names(x))) {
+    stop("Objek sk_wilayah harus memuat: hasil, indikator, B, per_tahun.", call. = FALSE)
+  }
+  if (!is.character(x$indikator) || length(x$indikator) != 1) {
+    stop("indikator harus satu nama kolom (teks), mis. \"tpt\".", call. = FALSE)
+  }
+  h <- x$hasil
+  if (!is.data.frame(h) || nrow(h) == 0) {
+    stop("hasil harus tabel (data.frame) yang tidak kosong.", call. = FALSE)
+  }
+  hilang <- setdiff(c("kelompok", "est", "bawah", "atas", "n"), names(h))
+  if (length(hilang) > 0) {
+    stop("Kolom pada hasil tidak lengkap, kurang: ", paste(hilang, collapse = ", "),
+         call. = FALSE)
+  }
+  if (isTRUE(x$per_tahun) && !"tahun" %in% names(h)) {
+    stop("per_tahun = TRUE membutuhkan kolom 'tahun' pada hasil.", call. = FALSE)
+  }
+  if (anyNA(h[c("est", "bawah", "atas")])) {
+    stop("est, bawah, dan atas tidak boleh berisi nilai kosong.", call. = FALSE)
+  }
+  if (any(h$bawah > h$est | h$est > h$atas)) {
+    stop("Estimasi harus berada di dalam SK (bawah <= est <= atas).", call. = FALSE)
+  }
+  if (!is.numeric(x$B) || length(x$B) != 1 || x$B < 1999) {
+    warning("B kurang dari 1.999 (ketentuan lembar tugas: B >= 1.999).", call. = FALSE)
+  }
+  invisible(x)
+}
+
+#' Buat objek analisis sk_wilayah
+#' autoplot(sk)
+sk_wilayah <- function(hasil, indikator, B, per_tahun = FALSE,
+                       rentang_tahun = NULL, seed = NA) {
+  hasil <- as.data.frame(hasil)
+  if (is.null(rentang_tahun) && "tahun" %in% names(hasil)) {
+    rentang_tahun <- range(hasil$tahun)
+  }
+  obj <- structure(
+    list(hasil = hasil, indikator = as.character(indikator), B = B,
+         per_tahun = isTRUE(per_tahun), rentang_tahun = rentang_tahun, seed = seed),
+    class = "sk_wilayah"
+  )
+  validasi_sk_wilayah(obj)
+  obj
+}
+
+#' Bungkus hasil hitung_sk() menjadi objek sk_wilayah
+#' sk <- as_sk_wilayah(hitung_sk(d_sk, tpt))
+as_sk_wilayah <- function(x) {
+  if (inherits(x, "sk_wilayah")) {
+    validasi_sk_wilayah(x)
+    return(x)
+  }
+  if (!is.list(x) || is.null(x$hasil)) {
+    stop("x harus daftar hasil hitung_sk() yang memuat komponen 'hasil'.", call. = FALSE)
+  }
+  sk_wilayah(hasil = x$hasil, indikator = x$indikator, B = x$B,
+             per_tahun = isTRUE(x$per_tahun), rentang_tahun = x$rentang_tahun,
+             seed = if (is.null(x$seed)) NA else x$seed)
+}
+
+# =============================================================================
+# 2. METODE print() DAN summary()
+# =============================================================================
+
+#' Cetak ringkasan objek sk_wilayah
+#' print(contoh_sk)
+print.sk_wilayah <- function(x, digits = 2, ...) {
+  h <- x$hasil
+  seed_ok <- length(x$seed) == 1 && !is.na(x$seed)
+  cat("Objek analisis tim: SK bootstrap per kelompok wilayah (kelas 'sk_wilayah')\n")
+  cat("  Indikator : ", .singkat_ind(x$indikator), "\n", sep = "")
+  cat("  Resample  : B = ", format(x$B, big.mark = ".", decimal.mark = ","),
+      if (seed_ok) paste0(", seed = ", x$seed) else "", "\n", sep = "")
+  if (!is.null(x$rentang_tahun)) {
+    cat("  Data      : tahun ", x$rentang_tahun[1], "-", x$rentang_tahun[2],
+        if (x$per_tahun) " (SK terpisah tiap tahun)" else " (rata-rata semua tahun per wilayah)",
+        "\n", sep = "")
+  }
+  cat("  Kelompok  : ", length(unique(h$kelompok)), "\n\n", sep = "")
+  
+  ord <- if (x$per_tahun) order(h$tahun, -h$est) else order(-h$est)
+  tab <- data.frame(
+    kelompok = as.character(h$kelompok)[ord],
+    est      = .koma(h$est[ord], digits),
+    bawah    = .koma(h$bawah[ord], digits),
+    atas     = .koma(h$atas[ord], digits),
+    n        = h$n[ord],
+    stringsAsFactors = FALSE
+  )
+  if (x$per_tahun) tab <- cbind(tahun = h$tahun[ord], tab)
+  print(tab, row.names = FALSE)
+  invisible(x)
+}
+
+#' Ringkasan analisis objek sk_wilayah
+#' summary(contoh_sk)
+summary.sk_wilayah <- function(object, ...) {
+  h <- object$hasil
+  rata <- tapply(h$est, h$kelompok, mean)
+  if (object$per_tahun) {
+    bagi    <- split(h, h$tahun)
+    tumpang <- vapply(bagi, .pasangan_tumpang, integer(1))
+    pasang  <- vapply(bagi, function(z) nrow(z) - 1L, integer(1))
+  } else {
+    tumpang <- .pasangan_tumpang(h)
+    pasang  <- nrow(h) - 1L
+  }
+  out <- list(indikator = object$indikator, per_tahun = object$per_tahun,
+              n_kelompok = length(rata),
+              tertinggi = names(which.max(rata)), est_tertinggi = max(rata),
+              terendah = names(which.min(rata)), est_terendah = min(rata),
+              tumpang = tumpang, pasangan = pasang,
+              n_kecil = unique(as.character(h$kelompok[h$n < 5])))
+  class(out) <- "summary.sk_wilayah"
+  out
+}
+
+#' @rdname summary.sk_wilayah
+print.summary.sk_wilayah <- function(x, ...) {
+  cat("Ringkasan SK bootstrap ", .singkat_ind(x$indikator), "\n", sep = "")
+  cat("  Jumlah kelompok     : ", x$n_kelompok, "\n", sep = "")
+  cat("  Rata-rata tertinggi : ", x$tertinggi, " (", .koma(x$est_tertinggi), ")\n", sep = "")
+  cat("  Rata-rata terendah  : ", x$terendah, " (", .koma(x$est_terendah), ")\n", sep = "")
+  if (x$per_tahun) {
+    cat("  SK tumpang tindih (pasangan bersebelahan), per tahun:\n")
+    for (th in names(x$tumpang)) {
+      cat("    ", th, ": ", x$tumpang[[th]], " dari ", x$pasangan[[th]], "\n", sep = "")
+    }
+  } else {
+    cat("  SK tumpang tindih   : ", x$tumpang, " dari ", x$pasangan,
+        " pasang kelompok bersebelahan\n", sep = "")
+  }
+  if (length(x$n_kecil) > 0) {
+    cat("  n kecil (n < 5)     : ", paste(x$n_kecil, collapse = ", "),
+        " -> SK bersifat indikatif\n", sep = "")
+  }
+  invisible(x)
+}
+
+# =============================================================================
+# 3. METODE autoplot()
+# =============================================================================
+
+#' Grafik SK bootstrap per kelompok wilayah (metode autoplot untuk sk_wilayah)
+autoplot.sk_wilayah <- function(object, urut = c("estimasi", "nama"),
+                                tampilkan_n = TRUE, tampilkan_nilai = TRUE,
+                                judul = NULL, subjudul = NULL, caption = NULL, ...) {
+  validasi_sk_wilayah(object)
+  urut <- match.arg(urut)
+  d   <- as.data.frame(object$hasil)
+  ind <- object$indikator
+  
+  # urutan dan label kelompok (sama di semua panel)
+  rata_est  <- tapply(d$est, d$kelompok, mean)
+  n_kel     <- tapply(d$n, d$kelompok, max)
+  urutan    <- if (urut == "estimasi") names(sort(rata_est)) else rev(sort(names(rata_est)))
+  peta_lab  <- stats::setNames(
+    if (tampilkan_n) paste0(names(n_kel), " (n = ", n_kel, ")") else names(n_kel),
+    names(n_kel))
+  d$label <- factor(unname(peta_lab[as.character(d$kelompok)]),
+                    levels = unname(peta_lab[urutan]))
+  
+  # teks otomatis
+  kel_max <- names(which.max(rata_est))
+  kel_min <- names(which.min(rata_est))
+  judul_oto <- paste(strwrap(
+    paste0(.singkat_ind(ind), " tertinggi di ", kel_max, " (", .koma(max(rata_est)),
+           "), terendah di ", kel_min, " (", .koma(min(rata_est)), ")"),
+    width = 75), collapse = "\n")
+  
+  subjudul_oto <- if (object$per_tahun) {
+    "Satu panel per tahun; SK dihitung terpisah untuk tiap tahun."
+  } else {
+    tumpang <- .pasangan_tumpang(d)
+    if (tumpang == 0) {
+      "Tidak ada pasangan kelompok bersebelahan yang SK-nya tumpang tindih."
+    } else {
+      paste0(tumpang, " dari ", nrow(d) - 1,
+             " pasang kelompok bersebelahan: SK tumpang tindih, peringkat belum pasti.")
+    }
+  }
+  
+  rt <- object$rentang_tahun
+  teks_x <- if (object$per_tahun || is.null(rt)) {
+    .label_ind(ind)
+  } else {
+    paste0(.label_ind(ind), ", rata-rata ", rt[1], "-", rt[2])
+  }
+  
+  caption_oto <- paste0(
+    "Titik = rata-rata; garis = SK bootstrap persentil 95% (B = ",
+    format(object$B, big.mark = ".", decimal.mark = ","),
+    "; unit resample: kabupaten/kota).\n",
+    if (any(d$n < 5)) "Kelompok dengan n kecil (n < 5): SK bersifat indikatif.\n" else "",
+    "Sumber: BPS, diolah Tim 6.")
+  
+  g <- ggplot(d, aes(x = est, y = label)) +
+    geom_linerange(aes(xmin = bawah, xmax = atas), orientation = "y",
+                   color = pal_tim[["garis_utama"]], linewidth = 0.9) +
+    geom_point(color = pal_tim[["garis_utama"]], size = 3)
+  if (tampilkan_nilai) {
+    g <- g + geom_text(aes(label = .koma(est)), vjust = -1.1, size = 3,
+                       color = pal_tim[["teks"]])
+  }
+  g <- g +
+    scale_x_continuous(labels = scales::label_number(decimal.mark = ","),
+                       expand = expansion(mult = c(0.05, 0.08))) +
+    labs(title    = .atur_teks(judul, judul_oto),
+         subtitle = .atur_teks(subjudul, subjudul_oto),
+         caption  = .atur_teks(caption, caption_oto),
+         x = teks_x, y = NULL) +
+    theme_tim(grid = "x") +
+    theme(plot.title = element_text(size = 13))
+  if (object$per_tahun) g <- g + facet_wrap(~ tahun, nrow = 1)
+  g
+}
+
+# Daftarkan metode pada generik autoplot milik ggplot2, supaya dispatch juga
+# berjalan bila dipanggil dari dalam paket/fungsi lain (bukan hanya dari Console).
+registerS3method("autoplot", "sk_wilayah", autoplot.sk_wilayah,
+                 envir = asNamespace("ggplot2"))
+
+# =============================================================================
+# 4. OBJEK CONTOH (angka REKAAN, hanya untuk uji dispatch dan contoh dokumentasi)
+# =============================================================================
+# Bukan hasil analisis. Hasil sebenarnya: as_sk_wilayah(hitung_sk(d_sk, tpt)).
+contoh_sk <- sk_wilayah(
+  hasil = data.frame(
+    kelompok = paste("Kelompok", c("A", "B", "C", "D", "E")),
+    est      = c(6.2, 4.4, 3.4, 2.9, 1.9),
+    bawah    = c(5.4, 3.6, 2.8, 2.5, 1.5),
+    atas     = c(8.9, 5.2, 4.1, 3.4, 2.3),
+    n        = c(4, 6, 3, 5, 6)
+  ),
+  indikator = "tpt", B = 1999, per_tahun = FALSE,
+  rentang_tahun = c(2023L, 2025L), seed = 2026
+)
+
+
+# =============================================================================
+# D. UJI 1: KELAS DAN VALIDASI
+# =============================================================================
+stopifnot(
+  inherits(contoh_sk, "sk_wilayah"),
+  identical(class(contoh_sk), "sk_wilayah"),
+  is.data.frame(contoh_sk$hasil)
+)
+
+# Objek per tahun (angka rekaan): geser sedikit tiap tahun
+h_tahun <- do.call(rbind, lapply(2023:2025, function(th) {
+  z <- contoh_sk$hasil
+  geser <- (th - 2024) * 0.15
+  z$est <- z$est + geser; z$bawah <- z$bawah + geser; z$atas <- z$atas + geser
+  z$tahun <- th
+  z
+}))
+contoh_sk_tahun <- sk_wilayah(h_tahun, indikator = "tpt", B = 1999, per_tahun = TRUE, seed = 2026)
+
+# Pembungkusan daftar biasa (bentuk keluaran hitung_sk()) menjadi sk_wilayah
+daftar_biasa <- unclass(contoh_sk)
+stopifnot(!inherits(daftar_biasa, "sk_wilayah"),
+          inherits(as_sk_wilayah(daftar_biasa), "sk_wilayah"))
+
+# Validasi harus menolak objek yang rusak
+rusak <- try(sk_wilayah(data.frame(kelompok = "A", est = 1), "tpt", 1999), silent = TRUE)
+stopifnot(inherits(rusak, "try-error"))
+cat("Pesan validasi yang diharapkan:", conditionMessage(attr(rusak, "condition")), "\n")
+
+# =============================================================================
+# E. UJI 2: DISPATCH
+# =============================================================================
+# metode terdaftar dan dapat ditemukan oleh sistem S3
+stopifnot(is.function(getS3method("autoplot", "sk_wilayah")))
+cat("\nMetode yang ditemukan:\n")
+print(methods(class = "sk_wilayah"))
+
+g1 <- autoplot(contoh_sk)               # dispatch ke autoplot.sk_wilayah
+g2 <- autoplot(contoh_sk_tahun)         # versi per tahun (satu panel per tahun)
+stopifnot(inherits(g1, "ggplot"), inherits(g2, "ggplot"))
+
+# Objek yang BUKAN sk_wilayah harus ditolak dengan pesan jelas
+tolak1 <- try(autoplot(daftar_biasa), silent = TRUE)   # daftar biasa tanpa kelas
+tolak2 <- try(autoplot(1:3), silent = TRUE)
+stopifnot(inherits(tolak1, "try-error"), inherits(tolak2, "try-error"))
+cat("\nPesan penolakan yang diharapkan:\n  ", conditionMessage(attr(tolak2, "condition")), "\n")
+
+# =============================================================================
+# F. UJI 3: KELUARAN INFORMATIF
+# =============================================================================
+print(contoh_sk)
+cat("\n")
+print(summary(contoh_sk))
+cat("\n")
+print(summary(contoh_sk_tahun))
+
+print(g1)
+print(g2)
+
+# opsi tampilan
+print(autoplot(contoh_sk, urut = "nama"))
+print(autoplot(contoh_sk, tampilkan_n = FALSE, tampilkan_nilai = FALSE,
+               judul = "Judul sendiri", subjudul = NA))
+
+# =============================================================================
+# G. UJI 4: OBJEK ASLI DARI hitung_sk() (bila 09_grafik_sk_bootstrap.R sudah dijalankan)
+# =============================================================================
+jalankan_bootstrap_otomatis <- TRUE   # FALSE = hanya uji dengan objek contoh
+
+if (jalankan_bootstrap_otomatis && !(exists("hitung_sk") && exists("d_sk"))) {
+  berkas_boot <- tryCatch(cari_berkas("^09_grafik_sk_boot.*\\.R$", "09_grafik_sk_bootstrap.R"),
+                          error = function(e) NA_character_)
+  if (!is.na(berkas_boot)) {
+    message("Menjalankan ", rel(berkas_boot), " untuk mendapatkan hitung_sk() dan d_sk ...")
+    dir_repo_saya <- dir_repo
+    ok <- tryCatch({ source(berkas_boot); TRUE },
+                   error = function(e) {
+                     message("Gagal menjalankan skrip bootstrap: ", conditionMessage(e))
+                     FALSE
+                   })
+    dir_repo <- dir_repo_saya        # kembalikan folder proyek milik skrip ini
+    # skrip bootstrap memuat theme_tim* TERBARU: kembalikan tema pilihan kita
+    source(berkas_tema)
+    theme_set(theme_tim())
+    message("Tema dikembalikan. Warna garis_utama: ", pal_tim[["garis_utama"]])
+  } else {
+    message("09_grafik_sk_bootstrap.R tidak ditemukan di folder proyek; uji objek asli dilewati.")
+  }
+}
+
+if (exists("hitung_sk") && exists("d_sk")) {
+  sk_asli <- as_sk_wilayah(hitung_sk(d_sk, tpt))
+  stopifnot(inherits(sk_asli, "sk_wilayah"), nrow(sk_asli$hasil) == 5)
+  print(sk_asli)
+  print(summary(sk_asli))
+  g_asli <- autoplot(sk_asli)
+  print(g_asli)
+  g_asli_tahun <- autoplot(as_sk_wilayah(hitung_sk(d_sk, tpt, per_tahun = TRUE)))
+  print(g_asli_tahun)
+} else {
+  message("Uji objek asli dilewati (hitung_sk dan d_sk tidak tersedia).")
+  g_asli <- NULL
+  g_asli_tahun <- NULL
+}
+
+# =============================================================================
+# H. SIMPAN GAMBAR ke keluaran/uji/
+# =============================================================================
+dir_uji <- file.path(dir_repo, "keluaran", "uji")
+dir.create(dir_uji, recursive = TRUE, showWarnings = FALSE)
+ggsave(file.path(dir_uji, "autoplot_contoh_rekaan.png"), g1, width = 9, height = 5.5,
+       dpi = 200, bg = "white")
+if (!is.null(g_asli)) {
+  ggsave(file.path(dir_uji, "autoplot_sk_tpt.png"), g_asli, width = 9, height = 5.5,
+         dpi = 200, bg = "white")
+  ggsave(file.path(dir_uji, "autoplot_sk_tpt_per_tahun.png"), g_asli_tahun,
+         width = 13, height = 5.5, dpi = 200, bg = "white")
+}
+message("Semua uji autoplot lolos. Gambar tersimpan di: ", rel(dir_uji))
