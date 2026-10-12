@@ -1,0 +1,484 @@
+---
+title: "Atlas Visual Sulawesi Selatan"
+subtitle: "Tingkat Pengangguran Terbuka Tahun 2023-2025"
+author: "Tim 6: Asmaul Husna dan Wafiq Chairani"
+date: today
+date-format: "D MMMM YYYY"
+lang: id
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-title: "Isi atlas"
+    toc-depth: 2
+    number-sections: false
+    fig-align: center
+    fig-dpi: 150
+    theme: cosmo
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+<!--
+  CARA MERENDER (dari folder utama repositori):
+      quarto render atlas.qmd
+  atau tombol Render di RStudio setelah membuka tim6-atlas-visual-sulsel.Rproj.
+
+  DEMO: ubah SATU nilai di chunk "parameter-demo" di bawah (tahun_demo atau
+  indikator_demo), lalu render ulang. Peta, uji buta warna, 24 profil, galeri,
+  dan semua angka di narasi ikut berubah.
+-->
+
+```{r}
+#| label: parameter-demo
+# =============================================================================
+# PARAMETER DEMO: ubah di sini, lalu Render ulang
+# =============================================================================
+tahun_demo     <- 2025     # tahun peta, peringkat profil, scatterplot, titik diurutkan
+indikator_demo <- "tpt"    # "tpt" atau "rls" (peta dan profil)
+```
+
+```{r}
+#| label: setup
+# =============================================================================
+# SETUP: paket, pencari skrip, dan pemuatan seluruh skrip tim
+# Semua jalur relatif terhadap folder utama repositori (folder atlas.qmd).
+# =============================================================================
+set.seed(2026)
+
+for (p in c("ggplot2", "sf", "patchwork", "purrr", "rlang", "colorspace", "scales", "knitr")) {
+  if (!requireNamespace(p, quietly = TRUE)) {
+    stop("Paket '", p, "' belum terpasang. Jalankan: install.packages('", p, "')")
+  }
+}
+library(ggplot2)
+library(sf)
+library(patchwork)
+library(purrr)
+library(rlang)
+
+# Folder utama repositori: mulai dari folder atlas.qmd, naik ke folder induk sampai
+# ketemu folder yang memuat berkas .Rproj, folder .git, atau data-bersih.
+cari_dir_repo <- function(mulai = getwd()) {
+  d <- normalizePath(mulai, winslash = "/", mustWork = FALSE)
+  repeat {
+    if (length(list.files(d, pattern = "\\.Rproj$")) > 0 ||
+        dir.exists(file.path(d, ".git")) ||
+        dir.exists(file.path(d, "data-bersih"))) return(d)
+    induk <- dirname(d)
+    if (identical(induk, d)) return(NA_character_)
+    d <- induk
+  }
+}
+dir_atlas <- cari_dir_repo()
+if (is.na(dir_atlas)) {
+  stop("Folder repositori tidak ditemukan dari lokasi atlas.qmd (", getwd(), "). ",
+       "Pindahkan atlas.qmd ke folder utama repositori ",
+       "(folder yang berisi berkas .Rproj), lalu render lagi.")
+}
+cat("Repositori:", dir_atlas, "\n")
+
+# Cari skrip berdasarkan pola nama di seluruh repositori (ambil yang terbaru).
+# Pola tidak mewajibkan awalan angka (mis. 07_), jadi nama berkas bebas.
+cari_skrip <- function(pola) {
+  semua_r <- list.files(dir_atlas, pattern = "\\.R$", recursive = TRUE,
+                        full.names = TRUE, ignore.case = TRUE)
+  semua_r <- semua_r[!grepl("/\\.Rproj\\.user/", semua_r)]
+  hasil   <- semua_r[grepl(pola, basename(semua_r), ignore.case = TRUE)]
+  if (length(hasil) == 0) {
+    semua <- list.files(dir_atlas, pattern = "\\.R$", recursive = TRUE, ignore.case = TRUE)
+    stop("Skrip dengan pola '", pola, "' tidak ditemukan di ", dir_atlas, ".\n",
+         "Berkas .R yang terlihat:\n", paste0("  - ", semua, collapse = "\n"))
+  }
+  hasil[order(file.mtime(hasil), decreasing = TRUE)][1]
+}
+
+# Jalankan skrip tim tanpa menampilkan keluarannya. `ganti` mengganti nilai
+# variabel pengaturan di skrip (mis. tahun_pilih) dengan parameter demo.
+jalankan_skrip <- function(pola, ganti = list()) {
+  berkas <- cari_skrip(pola)
+  baris  <- readLines(berkas, warn = FALSE, encoding = "UTF-8")
+  for (nm in names(ganti)) {
+    baris <- sub(paste0("^(", nm, "\\s*<-\\s*)[^#]*"),
+                 paste0("\\1", ganti[[nm]], "   "), baris)
+  }
+  grDevices::pdf(NULL)
+  dev_skrip <- grDevices::dev.cur()
+  on.exit(try(grDevices::dev.off(dev_skrip), silent = TRUE), add = TRUE)
+  invisible(utils::capture.output(
+    suppressMessages(suppressWarnings(eval(parse(text = baris), envir = globalenv())))
+  ))
+}
+
+# Cari satu gambar di sebuah folder; NA bila tidak ada
+cari_gambar <- function(folder, pola) {
+  f <- list.files(file.path(dir_atlas, folder), pattern = pola, full.names = TRUE,
+                  ignore.case = TRUE, recursive = TRUE)
+  if (length(f)) f[1] else NA_character_
+}
+
+# 1. Peta dulu: memuat tema, data sf (objek d), dan fungsi plot_peta()
+jalankan_skrip("peta_kor.*\\.R$")
+d_sf <- d
+
+# 2. Galeri grafik (grafik_1 ... grafik_6), tahun scatterplot mengikuti parameter
+jalankan_skrip("galeri_grafik.*\\.R$", ganti = list(tahun_pilih = tahun_demo))
+
+# 3. Grafik ketidakpastian: SK bootstrap (grafik_sk1, grafik_sk2)
+jalankan_skrip("grafik_sk_boot.*\\.R$")
+
+# 4. Fungsi profil 24 wilayah (tanpa langsung membuat 24 berkas)
+options(tim.tanpa_jalankan = TRUE)
+jalankan_skrip("(profil|grafik)_wilayah\\.R$")
+options(tim.tanpa_jalankan = NULL)
+
+# Skrip-skrip di atas bisa menimpa objek `d`: pulihkan data sf yang utuh
+d <- d_sf
+set.seed(2026)
+
+# ---- Data ringkas untuk angka di narasi (inline) ----
+koma <- function(x, n = 2) format(round(x, n), nsmall = n, decimal.mark = ",")
+persen <- function(x, n = 2) paste0(koma(x, n), "%")
+
+dd <- sf::st_drop_geometry(d)
+dd$jenis <- ifelse(as.character(dd$kode_wilayah) %in% c("7371", "7372", "7373"),
+                   "Kota", "Kabupaten")
+thn_awal  <- min(dd$tahun)
+thn_akhir <- max(dd$tahun)
+ind_lain  <- setdiff(c("tpt", "rls"), indikator_demo)
+
+dy <- dd[dd$tahun == tahun_demo, ]
+v  <- dy[[indikator_demo]]
+nama_ind <- if (indikator_demo == "tpt") "TPT" else "RLS"
+i_maks <- which.max(v); i_min <- which.min(v)
+
+rata_kota <- mean(dy$tpt[dy$jenis == "Kota"])
+rata_kab  <- mean(dy$tpt[dy$jenis == "Kabupaten"])
+r_tpt_rls <- cor(dy$rls, dy$tpt)
+
+aw <- dd[dd$tahun == thn_awal,  c("kode_wilayah", "kabupaten", "tpt")]
+ak <- dd[dd$tahun == thn_akhir, c("kode_wilayah", "kabupaten", "tpt")]
+sel <- ak$tpt - aw$tpt[match(ak$kode_wilayah, aw$kode_wilayah)]
+n_naik  <- sum(sel > 0)
+n_turun <- sum(sel < 0)
+i_naik  <- which.max(sel)
+
+med <- tapply(dd$tpt, dd$tahun, median)
+```
+
+# Pesan Utama
+
+**Pengangguran terbuka di Sulawesi Selatan cenderung lebih tinggi di wilayah perkotaan.**
+Pada tahun `r tahun_demo`, rata-rata Tingkat Pengangguran Terbuka (TPT) tiga kota (Makassar, Parepare, Palopo) adalah `r persen(rata_kota)`, sedangkan rata-rata 21 kabupaten `r persen(rata_kab)`. TPT tertinggi ada di `r dy$kabupaten[which.max(dy$tpt)]` (`r persen(max(dy$tpt))`) dan terendah di `r dy$kabupaten[which.min(dy$tpt)]` (`r persen(min(dy$tpt))`).
+
+Wilayah dengan rata-rata lama sekolah (RLS) lebih tinggi juga cenderung memiliki
+TPT lebih tinggi (r = `r koma(r_tpt_rls)`), tetapi ini hubungan antarwilayah dan
+bukan sebab-akibat. Pada tingkat kelompok wilayah, selisih antarkelompok yang
+garis ketidakpastiannya saling menutupi belum dapat dipastikan; selisih yang
+tampak jelas hanya antara Mamminasata (tertinggi) dan Selatan-Selatan (terendah).
+
+::: {.callout-note}
+## Data dan Cakupan
+Data yang digunakan berupa data 24 kabupaten/kota Sulawesi Selatan yang diperoleh dari Badan Pusat Statisik Sulawesi Selatan, tahun `r thn_awal`-`r thn_akhir`. Indikator
+utama: Tingkat Pengangguran Terbuka (TPT, %). Indikator pendamping: Rata-rata
+Lama Sekolah (RLS, tahun). Batas wilayah:
+geoBoundaries.
+:::
+
+# Galeri Grafik Statistik
+
+Enam grafik berikut dibuat dengan menggunakan `theme_tim()` dan palet tim yang sama. Setiap grafik dibuat dari kode, tanpa penyuntingan manual.
+
+## Sebaran TPT per Tahun
+
+```{r}
+#| label: fig-boxplot
+#| fig-cap: "Sebaran TPT 24 kabupaten/kota per tahun (kota disorot)."
+#| fig-width: 8
+#| fig-height: 5.5
+print(grafik_1)
+```
+
+Gambar 1 merupakan Boxplot dengan Titik yang menampilkan sebaran TPT 24 kabupaten/kota pada tiap tahun, dengan wilayah perkotaan yang menjadi sorotan. Median TPT bergerak dari `r persen(med[[1]])` pada `r thn_awal` menjadi `r persen(med[[length(med)]])` pada `r thn_akhir`, dan nilai tertinggi pada
+`r thn_akhir` ada di `r ak$kabupaten[which.max(ak$tpt)]` (`r persen(max(ak$tpt))`). Perlu diketahui bahwa Sulawesi Selatan hanya memiliki tiga wilayah perkotaan, sehingga perbandingan kota dan kabupaten bersifat indikatif.
+
+## Tren TPT Setiap Wilayah
+
+```{r}
+#| label: fig-small-multiples
+#| fig-cap: "Tren TPT 24 wilayah, diurutkan dari TPT tahun akhir tertinggi."
+#| fig-width: 10
+#| fig-height: 8
+print(grafik_2)
+```
+
+Gambar 2 merupakan Small Multiples yang menampilkan tren TPT `r thn_awal`-`r thn_akhir` untuk 24 wilayah, setiap panel mewakili satu wilayah, sehingga bentuk tren tiap wilayah dapat dibaca secara terpisah. Dari `r nrow(ak)` wilayah, `r n_naik` mengalami kenaikan TPT dan `r n_turun` mengalami penurunan antara `r thn_awal` dan `r thn_akhir`. Akan tetapi, grafik dibentuk hanya dengan menggunakan tiga periode waktu, sehingga arah tren sebaiknya tidak ditafsirkan sebagai pola jangka panjang.
+
+## Hubungan TPT dan RLS
+
+```{r}
+#| label: fig-scatter
+#| fig-cap: "Scatterplot TPT dan RLS dengan garis regresi dan pita kepercayaan 95%."
+#| fig-width: 9
+#| fig-height: 5.5
+print(grafik_3)
+```
+
+Gambar 3 adalah Scatterplot yang menempatkan tiap kabupaten/kota menurut RLS dan TPT pada tahun
+`r tahun_demo`, dengan garis regresi linear dan pita kepercayaan 95%. Korelasinya
+positif (r = `r koma(r_tpt_rls)`): Pada gambar 3 dapat disimpulkan bahwa wilayah dengan masa sekolah lebih lama cenderung memiliki TPT yang lebih tinggi. Pita yang melebar di sisi kanan menunjukkan ketidakpastian yang besar karena wilayah RLS tinggi hanya sedikit, dan hubungan ini deskriptif, bukan sebab-akibat.
+
+## TPT per Wilayah
+
+```{r}
+#| label: fig-titik-urut
+#| fig-cap: "TPT per kabupaten/kota, diurutkan dari tertinggi."
+#| fig-width: 8
+#| fig-height: 8
+print(grafik_4)
+```
+
+Gambar 4 merupakan Grafik Titik Diurutkan yang menampilkan TPT `r tahun_demo` per wilayah dari tertinggi ke
+terendah, sehingga urutan/peringkat dapat lebih mudah terbaca. TPT tertinggi
+adalah `r dy$kabupaten[which.max(dy$tpt)]` (`r persen(max(dy$tpt))`) dan terendah
+`r dy$kabupaten[which.min(dy$tpt)]` (`r persen(min(dy$tpt))`), sehingga rentangnya
+`r koma(max(dy$tpt) - min(dy$tpt))` poin persen. Angka tersebut merupakan nilai tunggal setiap wilayah tanpa selang ketidakpastian.
+
+## Perubahan TPT
+
+```{r}
+#| label: fig-dumbbell
+#| fig-cap: "Perubahan TPT dari tahun awal ke tahun akhir, diurutkan."
+#| fig-width: 8
+#| fig-height: 8.5
+print(grafik_5)
+```
+
+Gambar 5 merupakan Dumbbell yang menghubungkan TPT `r thn_awal` dan `r thn_akhir` pada tiap wilayah. Kenaikan terbesar terjadi di `r ak$kabupaten[i_naik]` (`r koma(sel[i_naik])` poin persen), dan `r n_turun` wilayah mengalami penurunan. Perubahan kecil berada dalam rentang
+fluktuasi survei, jadi selisih sekitar nol sebaiknya dibaca sebagai "tidak berubah nyata".
+
+## Komposisi Multipanel
+
+```{r}
+#| label: fig-komposisi
+#| fig-cap: "Komposisi multipanel dengan patchwork: scatterplot dan titik diurutkan."
+#| fig-width: 10
+#| fig-height: 13
+print(grafik_6)
+```
+
+Gambar 6 merupakan Komposisi Patchwork yang menggabungkan scatterplot (panel A) dan titik diurutkan (panel B) dalam satu tampilan, sehingga pola hubungan dan peringkat wilayah dapat dibaca bersamaan. Wilayah yang menonjol di panel A (Makassar, Palopo, Barru) sama dengan yang berada di puncak panel B. Keduanya memakai data tahun `r tahun_demo`.
+
+# Peta
+
+```{r}
+#| label: fig-peta
+#| fig-cap: !expr 'paste0(nama_ind, " ", tahun_demo, " per kabupaten/kota (kelas kuantil).")'
+#| fig-width: 9
+#| fig-height: 8
+peta <- plot_peta(d, indikator = !!sym(indikator_demo), tahun = tahun_demo)
+print(peta)
+```
+
+Gambar 7 merupakan Peta Koroplet yang menampilkan `r nama_ind` pada tahun `r tahun_demo` untuk 24 kabupaten/kota dalam lima
+kelas kuantil, yaitu tiap kelas memuat kira-kira jumlah wilayah yang sama. Nilai
+tertinggi ada di `r dy$kabupaten[i_maks]` (`r koma(v[i_maks])`) dan terendah di
+`r dy$kabupaten[i_min]` (`r koma(v[i_min])`). Wilayah kecil seperti Makassar,
+Parepare, dan Palopo sulit terlihat di peta sehingga perlu dibaca bersama dengan grafik titik
+diurutkan.
+
+## Uji Buta Warna
+
+```{r}
+#| label: tbl-uji-palet
+#| tbl-cap: "Uji palet peta: urutan terang-gelap dan selisih terang (L*) terkecil."
+hasil_palet <- NULL
+invisible(utils::capture.output(hasil_palet <- cek_palet_peta(n_kelas = 5)))
+lolos_wajib <- all(hasil_palet$lolos[hasil_palet$kondisi %in% c("Deuteranopia", "Protanopia")])
+hasil_palet$urutan_terjaga <- ifelse(hasil_palet$urutan_terjaga, "ya", "tidak")
+hasil_palet$lolos <- ifelse(hasil_palet$lolos, "lolos", "tidak lolos")
+names(hasil_palet) <- c("Kondisi", "Urutan terjaga", "Selisih L* terkecil", "Hasil")
+knitr::kable(hasil_palet, align = "lcrc")
+```
+
+```{r}
+#| label: fig-uji-buta-warna
+#| fig-cap: "Peta yang sama dalam tiga tampilan: normal, deuteranopia, dan protanopia (simulasi colorspace)."
+#| fig-width: 15
+#| fig-height: 6.5
+print(uji_buta_warna_peta(d, indikator = !!sym(indikator_demo), tahun = tahun_demo))
+```
+
+Skema warna peta (Blues, lima kelas) diuji dengan `colorspace::deutan()` dan
+`colorspace::protan()`. Kriteria warna yang lolos uji buta warna terlihat dari urutan kelas dari terang ke gelap yang tetap terjaga dan selisih terang (L*) antarkelas bersebelahan minimal sebesar ambang. Hasilnya, peta `r if (lolos_wajib) "lolos" else "TIDAK lolos"` uji deuteranopia dan protanopia. 
+
+# Profil 24 Kabupaten/Kota
+
+```{r}
+#| label: profil-24
+# Satu perintah menghasilkan 24 berkas profil (purrr::walk2 + ggsave di dalamnya).
+# Indikator dan tahun mengikuti parameter demo.
+berkas_profil <- buat_semua_profil(
+  d,
+  kiri       = !!sym(indikator_demo),
+  kanan      = !!sym(ind_lain),
+  tahun_rank = tahun_demo,
+  nol_kiri   = TRUE,
+  nol_kanan  = FALSE
+)
+```
+
+Fungsi `buat_semua_profil()` membuat `r length(berkas_profil)` profil sekaligus,
+satu per kabupaten/kota, dan menyimpannya di `keluaran/profil/`. Setiap profil memuat tren
+`r nama_ind` dan `r toupper(ind_lain)` dengan 23 wilayah lain sebagai garis abu di latar,
+peringkat tahun `r tahun_demo`, dan peta lokasi. Gambar 9, Gambar 10, dan Gambar 11 adalah  tiga contoh grafik yang dihasilkan.
+
+```{r}
+#| label: fig-contoh-profil
+#| fig-cap: "Contoh profil: Makassar, Gowa, dan Enrekang."
+#| out-width: "100%"
+pilih_profil <- unlist(lapply(c("makassar", "gowa", "enrekang"), function(k) {
+  berkas_profil[grepl(k, basename(berkas_profil), fixed = TRUE)][1]
+}))
+knitr::include_graphics(pilih_profil[!is.na(pilih_profil)])
+```
+
+# Grafik Ketidakpastian
+
+```{r}
+#| label: fig-sk
+#| fig-cap: "SK bootstrap 95% TPT per Satuan Wilayah Pembangunan (SWP), rata-rata 2023-2025."
+#| fig-width: 9
+#| fig-height: 5.5
+print(grafik_sk1)
+```
+
+Wilayah Kabupaten/Kota Sulawesi Selatan dibagi berdasarkan Satuan Wilayah Pembangunan (SWP) BPS yang dapat dilihat pada tabel di bawah ini.
+
+| Kelompok | n | Wilayah |
+|---|:-:|---|
+| Mamminasata | 4 | Makassar, Maros, Gowa, Takalar |
+| Ajatappareng | 6 | Parepare, Sidrap, Pinrang, Barru, Enrekang, Pangkep |
+| Bosowa | 3 | Bone, Soppeng, Wajo |
+| Selatan-Selatan | 5 | Kep. Selayar, Bulukumba, Bantaeng, Jeneponto, Sinjai |
+| Luwu Raya dan Toraja | 6 | Luwu, Luwu Utara, Luwu Timur, Palopo, Tana Toraja, Toraja Utara |
+
+Titik pada grafik di Gambar 12 menunjukkan rata-rata TPT 2023-2025 per kelompok, sedangkan garis menunjukkan selang kepercayaan (SK) bootstrap 95%, yaitu rentang nilai yang masuk akal bagi rata-rata kelompok. SK dihitung dengan bootstrap (B ≥ 1.999) dari wilayah anggota tiap kelompok, dan kelompok diurutkan dari rata-rata tertinggi. 
+
+Hasil bootstrap menunjukkan Mamminasata berada di urutan teratas (5,40%) dan Selatan-Selatan terendah (2,27%). Akan tetapi, terdapat 4 garis yang saling tumpang tindih yang berarti perbedaannya masih belum pasti. Hal lain yang perlu diperhatikan adalah Bosowa (n = 3) dan Mamminasata (n = 4) kecil,sehingga SK-nya lebar dan hanya bersifat indikatif.
+
+<!-- Angka 5,40% dan 2,27% dari tabel SK tim. Bila objek hasil SK tersedia di sesi
+     (mis. hasil1 dari hitung_sk_wilayah), ganti dengan kode inline agar ikut berubah. -->
+
+```{r}
+#| label: fig-sk-tahun
+#| fig-cap: "SK bootstrap 95% TPT per kelompok wilayah untuk tiap tahun."
+#| fig-width: 12
+#| fig-height: 5.5
+print(grafik_sk2)
+```
+
+Gambar 13 adalah grafik per tahun yang memeriksa apakah urutan kelompok stabil dari tahun ke tahun. Selang yang melebar pada kelompok kecil menunjukkan bahwa pengurutan di antara kelompok yang berdekatan mudah berubah bila satu wilayah bergeser, jadi kesimpulan sebaiknya hanya
+ditarik dari perbedaan yang SK-nya tidak saling tumpang tindih.
+
+# Hasil Lineup
+
+```{r}
+#| label: lineup-gambar
+#| fig-cap: "Lineup 20 panel: 1 panel data asli dan 19 panel data permutasi."
+#| out-width: "100%"
+kandidat <- unlist(lapply(c("keluaran/lineup", "berkas_lineup"), function(f) {
+  list.files(file.path(dir_atlas, f), pattern = "\\.png$", full.names = TRUE,
+             ignore.case = TRUE, recursive = TRUE)
+}))
+kandidat <- kandidat[!grepl("hasil_lineup|kunci", basename(kandidat), ignore.case = TRUE)]
+# utamakan nama yang memuat panel / 20 / lineup
+urut <- order(!grepl("panel|20|lineup", basename(kandidat), ignore.case = TRUE))
+g_lineup <- if (length(kandidat)) kandidat[urut][1] else NA_character_
+if (!is.na(g_lineup)) {
+  knitr::include_graphics(g_lineup)
+} else {
+  cat("(Gambar lineup 20 panel tidak ditemukan di folder berkas_lineup/.)")
+}
+```
+
+Gambar 14 merupakan kumpulan 20 panel yang digunakan untuk melakukan uji lineup. Uji lineup dilakukan untuk meminta pengamat memilih satu panel yang paling berbeda dari 20 panel yang
+berisi satu panel data asli dan 19 panel data permutasi (hubungan TPT dan RLS diacak).
+Bila tidak ada pola nyata, setiap panel memiliki peluang yang sama (1/20 = 0,05)
+untuk dipilih.
+
+```{r}
+#| label: lineup-hasil
+#| fig-cap: "Jumlah pengamat yang memilih tiap panel. Garis putus-putus: harapan bila hanya menebak (n/20)."
+#| out-width: "100%"
+g_hasil <- cari_gambar("keluaran/lineup", "hasil_lineup\\.png$")
+if (!is.na(g_hasil)) {
+  knitr::include_graphics(g_hasil)
+} else {
+  cat("(Gambar hasil lineup belum dibuat. Jalankan analisis_lineup.R.)")
+}
+```
+
+```{r}
+#| label: lineup-teks
+#| results: asis
+f_ringkas <- file.path(dir_atlas, "keluaran", "lineup", "ringkasan_hasil_lineup.txt")
+if (file.exists(f_ringkas)) {
+  teks <- readLines(f_ringkas, warn = FALSE, encoding = "UTF-8")
+  teks <- teks[nzchar(trimws(teks))]
+  cat("**", tail(teks, 1), "**\n", sep = "")
+}
+```
+
+p-value visual dihitung meggunakan peluang binomial dengan menjawab pertanyaan jika semua pengamat hanya menebak, berapa peluang sebanyak itu (atau lebih) memilih panel asli. Apabila hasil yang diperoleh berupa nilai yang sangat kecil maka pola pada data asli dapat dibedakan secara visual dari data acak, sehingga hubungan TPT-RLS bukan hanya sebuah kebetulan. Keterbatasannya, jumlah pengamat yang sedikit dan uji ini menilai ada tidaknya pola, bukan menunjukkan seberapa kuat hubungannya atau apa penyebabnya.
+
+# Makeover
+
+```{r}
+#| label: makeover-gambar
+#| fig-cap: "Grafik resmi: sebelum dan sesudah makeover."
+#| out-width: "100%"
+g_sebelum <- cari_gambar("makeover", "(before|sebelum)[^/]*\\.(png|jpg|jpeg)$")
+g_sesudah <- cari_gambar("makeover", "(after|sesudah)[^/]*\\.(png|jpg|jpeg)$")
+g_makeover <- c(g_sebelum, g_sesudah)
+g_makeover <- g_makeover[!is.na(g_makeover)]
+if (length(g_makeover) > 0) {
+  knitr::include_graphics(g_makeover)
+} else {
+  cat("(Gambar makeover tidak ditemukan di folder makeover/. Pastikan nama berkas memuat 'before' dan 'after'.)")
+}
+```
+
+Berikut masalah pada grafik resmi dan perbaikannya. 
+
+| No | Masalah pada grafik asli | Perbaikan | Alasan (prinsip persepsi visual) |
+|:-:|---|---|---|
+| 1 | Dua pembagian penduduk yang berbeda dicampur dalam satu kelompok batang | Memisahkan kategori menjadi dua panel, yaitu panel “Tingkat Pengangguran Terbuka Berdasarkan Jenis Kelamin” yang berisi laki-laki dan perempuan, serta panel “Tingkat Pengangguran Terbuka Berdasarkan Wilayah” yang berisi perkotaan dan pedesaan. | Pemisahan panel membuat setiap kelompok memiliki dasar klasifikasi yang jelas. Laki-laki dan perempuan dipersepsikan sebagai satu kelompok berdasarkan jenis kelamin, sedangkan perkotaan dan pedesaan sebagai satu kelompok berdasarkan wilayah. Hal ini menerapkan prinsip Similarity, Proximity, dan Grouping sehingga hubungan antar kategori lebih mudah dipahami. |
+| 2 | Batang dan garis digabung tanpa sumbu Y dan tanpa skala bersama | Memisahkan grafik TPT total dalam bentuk garis dari grafik TPT berdasarkan kategori dalam bentuk batang. Ketiga panel menggunakan skala sumbu Y yang sama, yaitu dimulai dari 0 hingga 8 persen. | Skala Y yang sama membuat posisi dan panjang elemen visual dapat dibandingkan secara langsung antar panel. Pemisahan grafik juga membuat informasi TPT total dan TPT berdasarkan kategori tidak saling bertumpuk. Dengan demikian, prinsip Common Scale, Position and Length, serta Visual Hierarchy dapat diterapkan dengan lebih baik. |
+| 3 | Pengkodean warna dan legenda lemah | Menggunakan satu keluarga warna untuk setiap dimensi, yaitu warna biru untuk jenis kelamin dan warna oranye untuk wilayah, dengan perbedaan tingkat kecerahan untuk membedakan kategori. Label kategori juga ditempatkan langsung pada batang sehingga legenda tidak diperlukan. | Penggunaan keluarga warna yang konsisten membantu pembaca mengenali kategori yang masih berada dalam dimensi yang sama. Label langsung pada batang membuat informasi kategori berada dekat dengan objek yang dijelaskan sehingga mengurangi kebutuhan untuk berpindah antara grafik dan legenda. Perbedaan warna dan kecerahan juga memanfaatkan warna sebagai atribut pre-attentive sehingga kategori dapat dikenali dengan lebih cepat. |
+
+# Deklarasi Penggunaan AI
+
+<!-- DRAF: tim wajib memeriksa dan menyesuaikan dengan penggunaan yang sebenarnya.
+     Isi harus sama dengan deklarasi di README.md. -->
+
+| Alat AI | Penggunaan | Cara verifikasi |
+|---|---|---|
+| Claude | Menulis dan merevisi kode R, membuat kerangka atlas.qmd, dan penysunan draf narasi | Semua kode dijalankan sendiri oleh tim dan hasilnya dicek terhadap data; angka di narasi dihitung dari data (kode inline), bukan diketik dari keluaran AI. Draf narasi keluaran AI kembali direvisi oleh tim agar kalimat yang digunakan dapat lebih mudah dipahami.|
+
+Keputusan analisis (pemilihan indikator, pengelompokan wilayah, tafsiran hasil) dibuat
+dan diperiksa oleh tim.
+
+# Informasi Sesi
+
+```{r}
+#| label: info-sesi
+cat("R", paste(R.version$major, R.version$minor, sep = "."), "|",
+    "dirender", format(Sys.time(), "%d %B %Y %H:%M"), "\n")
+cat("Paket:", paste(c("ggplot2", "sf", "patchwork", "purrr", "colorspace"), 
+                    vapply(c("ggplot2", "sf", "patchwork", "purrr", "colorspace"),
+                           function(p) as.character(utils::packageVersion(p)), ""),
+                    collapse = ", "), "\n")
+```
