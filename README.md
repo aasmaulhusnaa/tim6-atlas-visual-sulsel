@@ -6,11 +6,11 @@ Proyek 14 hari mata kuliah **Komputasi Statistika Lanjut** (25H06210204), S2 Sta
 
 **Tim 6:** Asmaul Husna dan Wafiq Chairani
 
-## Pertanyaan proyek
+## Pertanyaan Proyek
 
 Bagaimana menyajikan satu indikator pembangunan untuk 24 kabupaten/kota di Sulawesi Selatan secara **jujur** (ketidakpastian tampak), **teruji** (pola terbukti bukan kebetulan), dan **terprogram** (seluruh grafik dapat dibuat ulang dengan satu perintah)?
 
-## Temuan utama
+## Temuan Utama
 
 - TPT di Sulawesi Selatan cenderung **lebih tinggi di wilayah perkotaan**. Pada 2025, TPT tertinggi ada di Makassar (9,60%) dan terendah di Enrekang (1,78%).
 - Wilayah dengan rata-rata lama sekolah (RLS) lebih tinggi cenderung memiliki TPT lebih tinggi. Ini hubungan antarwilayah, bukan sebab-akibat.
@@ -30,7 +30,7 @@ Rincian, grafik, dan tafsirannya ada di **`atlas.html`** (dirender dari `atlas.q
 | Batas wilayah | geoBoundaries (IDN-ADM2) |
 | Data bersih | `data/data-bersih/data_bersih.rds` (memuat geometri peta, objek `sf`) |
 
-## Struktur repositori
+## Struktur Repositori
 
 ```
 .
@@ -66,7 +66,7 @@ Rincian, grafik, dan tafsirannya ada di **`atlas.html`** (dirender dari `atlas.q
 └── README.md
 ```
 
-## Cara menjalankan ulang
+## Cara Menjalankan Ulang
 
 ### 1. Prasyarat
 
@@ -81,7 +81,7 @@ install.packages(c("ggplot2", "sf", "patchwork", "purrr", "rlang",
 
 Skrip pembersihan data (`01_data_bersih.R`) dapat memerlukan paket tambahan untuk membaca data mentah; paketnya disebutkan di bagian awal skrip tersebut.
 
-### 2. Ambil repositori
+### 2. Ambil Repositori
 
 ```bash
 git clone https://github.com/<nama-akun>/tim6-atlas-visual-sulsel.git
@@ -89,7 +89,7 @@ git clone https://github.com/<nama-akun>/tim6-atlas-visual-sulsel.git
 
 Buka folder hasil clone di RStudio (File > New Project > Existing Directory), atau atur folder kerja R ke folder utama repositori. Semua skrip mencari berkas secara otomatis dari folder utama, jadi tidak ada jalur yang perlu diubah.
 
-### 3. Render atlas
+### 3. Render Atlas
 
 Dari folder utama repositori:
 
@@ -110,7 +110,7 @@ indikator_demo <- "tpt"   # "tpt" atau "rls"
 
 Peta, uji buta warna, 24 profil, dan angka di narasi ikut berubah.
 
-### 5. 24 profil dari satu perintah
+### 5. 24 Profil dari Satu Perintah
 
 Skrip `R/08_profil_wilayah.R` memuat fungsi `plot_profil()` dan `buat_semua_profil()`. Menjalankan skrip itu menghasilkan 24 berkas PNG di `keluaran/profil/`. Argumen indikator dan tahun dapat diganti:
 
@@ -121,7 +121,7 @@ buat_semua_profil(d, tahun = 2024:2025)         # tren 2024-2025
 buat_semua_profil(d, kiri = rls, kanan = tpt)   # tukar indikator
 ```
 
-### 6. Skrip lain
+### 6. Skrip Lain
 
 | Tujuan | Jalankan |
 |---|---|
@@ -133,7 +133,7 @@ buat_semua_profil(d, kiri = rls, kanan = tpt)   # tukar indikator
 
 Urutan skrip mengikuti nomor di depan nama berkasnya. Setiap skrip memuat `03_theme_tim.R` sendiri.
 
-## Komponen proyek
+## Komponen Proyek
 
 | Komponen | Keluaran | Lokasi |
 |---|---|---|
@@ -162,11 +162,11 @@ Urutan skrip mengikuti nomor di depan nama berkasnya. Setiap skrip memuat `03_th
 - Warna peta diuji dengan simulasi deuteranopia dan protanopia (`colorspace::deutan()` dan `colorspace::protan()`).
 - Angka di narasi atlas dihitung dengan kode inline dari data, bukan diketik manual.
 
-## Catatan data lineup
+## Catatan Data Lineup
 
 Pengamat lineup mengisi formulir daring, dan anggota Tim 6 (pembuat lineup) tidak dihitung. Bila satu nama mengisi lebih dari sekali, hanya jawaban pertama yang dipakai. Hasil analisis hanya memakai data pengamat sah (n = 12).
 
-## Deklarasi penggunaan AI
+## Deklarasi Penggunaan AI
 
 | Alat AI | Digunakan untuk | Cara verifikasi |
 |---|---|---|
