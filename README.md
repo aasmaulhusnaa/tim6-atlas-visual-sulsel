@@ -1,104 +1,180 @@
-# tim6-atlas-visual-sulsel
+# Atlas Visual Sulawesi Selatan
 
-**Atlas Visual Sulawesi Selatan: Tingkat Pengangguran Terbuka dan Rata-rata Lama Sekolah, 24 kabupaten/kota, 2023-2025.**
-Proyek Tim 6, mata kuliah Komputasi Statistika Lanjut (S2 Statistika, FMIPA Unhas).
+**Tingkat Pengangguran Terbuka (TPT) di 24 kabupaten/kota Sulawesi Selatan, 2023-2025**
 
-Pertanyaan yang dijawab: bagaimana menyajikan satu indikator pembangunan untuk 24 kabupaten/kota di Sulawesi Selatan secara jujur (ketidakpastian tampak), teruji (pola terbukti bukan kebetulan), dan terprogram (seluruh grafik dapat dibuat ulang dengan kode).
+Proyek 14 hari mata kuliah **Komputasi Statistika Lanjut** (25H06210204), S2 Statistika Universitas Hasanuddin, Semester Ganjil 2026/2027.
 
-## Pesan utama
+**Tim 6:** Asmaul Husna dan Wafiq Chairani
 
-Hubungan TPT dan RLS tampak kuat (r = 0,75 pada 2025), tetapi didorong terutama oleh tiga kota: pada kabupaten saja korelasinya hanya r = 0,13. Wilayah dengan RLS lebih tinggi cenderung memiliki TPT lebih tinggi, dan Makassar, Palopo, dan Parepare berada di antara yang tertinggi.
+## Pertanyaan proyek
 
-## Indikator dan data
+Bagaimana menyajikan satu indikator pembangunan untuk 24 kabupaten/kota di Sulawesi Selatan secara **jujur** (ketidakpastian tampak), **teruji** (pola terbukti bukan kebetulan), dan **terprogram** (seluruh grafik dapat dibuat ulang dengan satu perintah)?
 
-| Indikator | Peran | Satuan |
-|---|---|---|
-| TPT (Tingkat Pengangguran Terbuka) | Utama | persen |
-| RLS (Rata-rata Lama Sekolah) | Pendamping | tahun |
+## Temuan utama
 
-- **Cakupan:** 24 kabupaten/kota Sulawesi Selatan, 2023-2025.
-- **Sumber:** BPS (TPT Agustus dan RLS); batas wilayah dari geoBoundaries (IDN-ADM2).
-- **Data bersih:** `data/data-bersih/` (`data_bersih.rds` dan `data_bersih.csv`) dengan kolom `kode_wilayah`, `kabupaten`, `tahun`, `tpt`, `rls`; satu baris per wilayah per tahun.
-- **Jenis wilayah** ditentukan dari kode wilayah: 7371 sampai 7373 (Makassar, Parepare, Palopo) adalah kota, sisanya kabupaten.
+- TPT di Sulawesi Selatan cenderung **lebih tinggi di wilayah perkotaan**. Pada 2025, TPT tertinggi ada di Makassar (9,60%) dan terendah di Enrekang (1,78%).
+- Wilayah dengan rata-rata lama sekolah (RLS) lebih tinggi cenderung memiliki TPT lebih tinggi. Ini hubungan antarwilayah, bukan sebab-akibat.
+- Pada tingkat Satuan Wilayah Pembangunan (SWP), selang kepercayaan bootstrap 95% menunjukkan Mamminasata tertinggi (5,40%) dan Selatan-Selatan terendah (2,27%).
+- Uji lineup 20 panel: 10 dari 12 pengamat sah memilih panel data asli, jauh di atas harapan bila hanya menebak (0,6 orang), dengan p-value visual < 0,001.
+
+Rincian, grafik, dan tafsirannya ada di **`atlas.html`** (dirender dari `atlas.qmd`).
+
+## Data
+
+| Hal | Keterangan |
+|---|---|
+| Indikator utama | Tingkat Pengangguran Terbuka (TPT, %) |
+| Indikator pendamping | Rata-rata Lama Sekolah (RLS, tahun) |
+| Cakupan | 24 kabupaten/kota Sulawesi Selatan, 2023-2025 |
+| Sumber data | Badan Pusat Statistik (BPS) |
+| Batas wilayah | geoBoundaries (IDN-ADM2) |
+| Data bersih | `data/data-bersih/data_bersih.rds` (memuat geometri peta, objek `sf`) |
 
 ## Struktur repositori
 
 ```
-tim6-atlas-visual-sulsel/
-├── R/                   skrip analisis dan tema
+.
+├── R/                         # semua skrip, urut sesuai alur kerja
+│   ├── 01_data_bersih.R       # impor, pembersihan, penggabungan data dan batas peta
+│   ├── 02_makeover.R          # makeover grafik resmi (before/after)
+│   ├── 03_theme_tim.R         # theme_tim(), palet warna, skala warna peta
+│   ├── 04_galeri_grafik.R     # galeri 6 grafik statistik
+│   ├── 05_fungsi_grafik.R     # fungsi grafik dengan tidy evaluation ({{ }})
+│   ├── 06_lineup.R            # pembuatan lineup 20 panel
+│   ├── 07_peta_korpolet.R     # peta koroplet + uji buta warna
+│   ├── 08_profil_wilayah.R    # 24 profil kabupaten/kota (purrr::walk2 + ggsave)
+│   ├── 09_grafik_sk_bootstrap.R  # SK bootstrap 95% per SWP
+│   ├── 10_analisis_lineup.R   # p-value visual hasil lineup
+│   ├── 11_autoplot            # metode S3 autoplot()
+│   ├── grafik_infografis.R    # grafik versi tanpa teks untuk infografis
+│   └── uji_buta_warna.R       # uji simulasi deuteranopia dan protanopia
 ├── data/
-│   ├── batas-peta/      batas wilayah (geoBoundaries IDN-ADM2)
-│   ├── data-bersih/     data_bersih.rds dan data_bersih.csv
-│   ├── data-kode-wilayah/
-│   └── data-mentah/
-├── makeover/            grafik sebelum dan sesudah makeover
-├── theme_team/          dokumentasi tema, bukti uji buta warna, galeri grafik
-├── keluaran/            (menyusul) grafik dan 24 profil kabupaten
-├── atlas.qmd            (menyusul) atlas Quarto
-├── infografis.pdf       (menyusul) infografis kebijakan
+│   ├── data-mentah/           # data mentah
+│   ├── data-kode-wilayah/     # kode wilayah
+│   ├── batas-peta/            # batas wilayah geoBoundaries
+│   └── data-bersih/           # data bersih (.rds)
+├── theme_team/                # galeri grafik dan uji palet tema
+├── makeover/                  # before.png, after.png, catatan_perbaikan.md
+├── berkas_lineup/             # lineup 20 panel, kunci, formulir, jawaban pengamat
+├── hasil_lineup/              # gambar dan ringkasan hasil lineup
+├── peta_koroplet/             # peta TPT 2025 dan hasil uji buta warna
+├── SK_bootstrap/              # grafik SK bootstrap
+├── keluaran/
+│   └── profil/                # 24 profil kabupaten/kota (PNG)
+├── atlas.qmd                  # sumber atlas (Quarto)
+├── infografis.pdf             # infografis kebijakan 1 halaman
 └── README.md
 ```
 
-| Lokasi | Isi |
-|---|---|
-| `R/01_data_bersih.R` | Impor, pembersihan, dan penggabungan data dengan kode wilayah |
-| `R/02_makeover.R` | Kode grafik makeover (sebelum dan sesudah) |
-| `R/03_theme_tim .R` | Palet warna, skala, dan `theme_tim()` yang dipakai semua grafik |
-| `R/uji_buta_warna.R` | Uji palet dengan simulasi buta warna (`colorspace`) |
-| `makeover/` | `before.png`, `after.png`, dan `catatan_perbaikan.md` (alasan perbaikan) |
-| `theme_team/readme.md` | Aturan tema dan palet secara lengkap |
-| `theme_team/uji_palet_*.png` | Bukti uji buta warna palet tim dan palet peta |
-| `theme_team/galeri/` | Contoh grafik hasil galeri (dumbbell dan komposisi) |
-
-Catatan: nama folder `theme_team` dan file `03_theme_tim .R` (ada spasi sebelum `.R`) ditulis apa adanya seperti di repositori.
-
 ## Cara menjalankan ulang
 
-1. Unduh atau clone repositori ini, lalu buka R atau RStudio.
-2. Atur folder kerja ke folder utama repositori:
-   ```r
-   setwd("alamat/ke/tim6-atlas-visual-sulsel")
-   ```
-3. Pasang paket yang dibutuhkan:
-   ```r
-   install.packages(c("ggplot2", "patchwork", "colorspace"))
-   # untuk tahap berikutnya: sf, purrr, nullabor, quarto
-   ```
-4. Jalankan skrip berurutan: `R/01_data_bersih.R`, lalu `R/02_makeover.R`.
-5. Jalankan skrip galeri grafik (`galeri_grafik.R`, grafik 1 sampai 6). Skrip ini mencari file tema (`03_theme_tim .R`) dan `data_bersih.csv` di dalam repositori secara otomatis, lalu menyimpan grafik sebagai PNG.
-6. Untuk mengganti indikator atau tahun, ubah pengaturan di bagian atas skrip galeri (`tahun_pilih`, `th_awal`, `th_akhir`), lalu jalankan ulang.
-7. *(menyusul)* Render atlas dengan `quarto render atlas.qmd`, dan 24 profil kabupaten dengan satu perintah.
+### 1. Prasyarat
 
-## Tema grafik
+- [R](https://cran.r-project.org/) (disarankan versi 4.1 atau lebih baru)
+- [Quarto](https://quarto.org/docs/get-started/) (sudah termasuk di RStudio versi terbaru)
+- Paket R:
 
-Semua grafik memakai tema buatan sendiri, `theme_tim()`, tanpa paket tema siap pakai. Kabupaten dibedakan dari kota dengan warna dan bentuk titik (kabupaten lingkaran ungu, kota persegi kuning), garis memakai vermilion, judul biru, dan peta koroplet memakai palet sekuensial Blues. Palet diuji dengan simulasi deuteranopia, protanopia, tritanopia, dan grayscale. Aturan lengkapnya ada di [`theme_team/readme.md`](theme_team/readme.md).
+```r
+install.packages(c("ggplot2", "sf", "patchwork", "purrr", "rlang",
+                   "colorspace", "scales", "knitr"))
+```
 
-## Hasil
+Skrip pembersihan data (`01_data_bersih.R`) dapat memerlukan paket tambahan untuk membaca data mentah; paketnya disebutkan di bagian awal skrip tersebut.
 
-| Produk | Status |
+### 2. Ambil repositori
+
+```bash
+git clone https://github.com/<nama-akun>/tim6-atlas-visual-sulsel.git
+```
+
+Buka folder hasil clone di RStudio (File > New Project > Existing Directory), atau atur folder kerja R ke folder utama repositori. Semua skrip mencari berkas secara otomatis dari folder utama, jadi tidak ada jalur yang perlu diubah.
+
+### 3. Render atlas
+
+Dari folder utama repositori:
+
+```bash
+quarto render atlas.qmd
+```
+
+Hasilnya `atlas.html`: satu berkas mandiri berisi pesan utama, galeri, peta, profil, grafik ketidakpastian, hasil lineup, makeover, catatan revisi, dan deklarasi AI. Render pertama dapat memakan beberapa menit karena bootstrap dan 24 profil dihitung ulang.
+
+### 4. Demo: ganti satu argumen, render ulang
+
+Buka `atlas.qmd`, ubah salah satu nilai di bagian atas, lalu render lagi:
+
+```r
+tahun_demo     <- 2025    # tahun peta, peringkat profil, dan scatterplot
+indikator_demo <- "tpt"   # "tpt" atau "rls"
+```
+
+Peta, uji buta warna, 24 profil, dan angka di narasi ikut berubah.
+
+### 5. 24 profil dari satu perintah
+
+Skrip `R/08_profil_wilayah.R` memuat fungsi `plot_profil()` dan `buat_semua_profil()`. Menjalankan skrip itu menghasilkan 24 berkas PNG di `keluaran/profil/`. Argumen indikator dan tahun dapat diganti:
+
+```r
+source("R/08_profil_wilayah.R")                 # membuat 24 profil
+buat_semua_profil(d, tahun_rank = 2023)         # peringkat tahun 2023
+buat_semua_profil(d, tahun = 2024:2025)         # tren 2024-2025
+buat_semua_profil(d, kiri = rls, kanan = tpt)   # tukar indikator
+```
+
+### 6. Skrip lain
+
+| Tujuan | Jalankan |
 |---|---|
-| Galeri grafik statistik (grafik 1 sampai 6) | Dalam pengerjaan |
-| Makeover grafik resmi | [`makeover/`](makeover/) |
-| Peta koroplet dan 24 profil kabupaten | Menyusul |
-| Grafik ketidakpastian (bootstrap) dan lineup | Menyusul |
-| Atlas Visual (Quarto, HTML) | Menyusul |
-| Infografis kebijakan | Menyusul |
+| Galeri 6 grafik | `R/04_galeri_grafik.R` |
+| Peta koroplet + uji buta warna | `R/07_peta_korpolet.R` |
+| SK bootstrap 95% | `R/09_grafik_sk_bootstrap.R` |
+| Analisis lineup | `R/10_analisis_lineup.R` (membaca `jawaban_pengamat.csv`; menulis ke `keluaran/lineup/`) |
+| Grafik tanpa teks untuk infografis | `R/grafik_infografis.R` (menulis ke `keluaran/tanpa_teks/`) |
+
+Urutan skrip mengikuti nomor di depan nama berkasnya. Setiap skrip memuat `03_theme_tim.R` sendiri.
+
+## Komponen proyek
+
+| Komponen | Keluaran | Lokasi |
+|---|---|---|
+| Makeover | Grafik resmi sebelum dan sesudah, catatan perbaikan | `makeover/` |
+| Tema dan galeri | `theme_tim()`, palet, 6 grafik statistik | `R/03_theme_tim.R`, `theme_team/galeri/` |
+| Fungsi grafik | Fungsi dengan `{{ }}` (tidy evaluation) | `R/05_fungsi_grafik.R`, `R/08_profil_wilayah.R` |
+| 24 profil | Satu perintah, 24 PNG | `keluaran/profil/` |
+| Peta | Koroplet `sf`, lolos simulasi deuteranopia dan protanopia (`colorspace`) | `peta_koroplet/` |
+| Ketidakpastian | SK bootstrap 95% per SWP | `SK_bootstrap/` |
+| Inferensi visual | Lineup 20 panel, p-value visual | `berkas_lineup/`, `hasil_lineup/` |
+| `autoplot()` | Metode S3 dengan dispatch | `R/11_autoplot` |
+| Atlas dan infografis | Atlas Quarto (HTML) dan infografis 1 halaman | `atlas.qmd`, `infografis.pdf` |
 
 ## Checkpoint
 
-| Checkpoint | Isi | Tag |
-|---|---|---|
-| 1 | Data bersih dan makeover sebelum/sesudah | `cp1` |
-| 2 | `theme_tim()` dan galeri | `cp2` |
-| 3 | Fungsi grafik, 24 profil, dan peta | `cp3` |
-
-## Tim
-
-| Anggota | Peran |
+| Tag | Isi |
 |---|---|
-| Wafiq Chairani | *(isi)* |
-| Asmaul Husna | *(isi)* |
+| `cp1` | Data bersih + makeover before/after |
+| `cp2` | `theme_tim()` + galeri grafik |
+| `cp3` | Fungsi grafik + 24 profil + peta |
+
+## Reprodusibilitas
+
+- Semua grafik dihasilkan dari kode. Tidak ada penyuntingan manual, kecuali tata letak infografis.
+- Tema (`theme_tim()`) dan palet dibuat sendiri; tidak memakai paket tema siap pakai.
+- Warna peta diuji dengan simulasi deuteranopia dan protanopia (`colorspace::deutan()` dan `colorspace::protan()`).
+- Angka di narasi atlas dihitung dengan kode inline dari data, bukan diketik manual.
+
+## Catatan data lineup
+
+Pengamat lineup mengisi formulir daring, dan anggota Tim 6 (pembuat lineup) tidak dihitung. Bila satu nama mengisi lebih dari sekali, hanya jawaban pertama yang dipakai. Hasil analisis hanya memakai data pengamat sah (n = 12).
 
 ## Deklarasi penggunaan AI
 
-Tim menggunakan asisten AI (Claude, Anthropic) sebagai bantuan untuk menyusun dan memperbaiki kode R.
+| Alat AI | Digunakan untuk | Cara verifikasi |
+|---|---|---|
+| Claude | Menulis dan merevisi kode R, membuat kerangka atlas.qmd, dan penysunan draf narasi | Semua kode dijalankan sendiri oleh tim dan hasilnya dicek terhadap data; angka di narasi dihitung dari data (kode inline), bukan diketik dari keluaran AI. Draf narasi keluaran AI kembali direvisi oleh tim agar kalimat yang digunakan dapat lebih mudah dipahami. |
+
+Keputusan analisis (pemilihan indikator, pengelompokan wilayah, tafsiran hasil) dibuat dan diperiksa oleh tim.
+
+## Sumber Data
+
+- Badan Pusat Statistik (BPS), data TPT dan RLS kabupaten/kota Sulawesi Selatan.
+- geoBoundaries, batas wilayah administrasi (IDN-ADM2).
